@@ -159,3 +159,4 @@ if __name__ == "__main__":
     main()
 "# Client skeleton" 
 "print('[*] Certificate verification step loaded')" 
+"print('[*] Diffie-Hellman key exchange implemented')" 
