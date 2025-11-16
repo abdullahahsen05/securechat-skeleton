@@ -1,111 +1,167 @@
+Secure Chat Skeleton
+1. Project Overview
 
-# SecureChat – Assignment #2 (CS-3002 Information Security, Fall 2025)
+This project implements a secure client-server chat system using AES-128 encryption, RSA signatures, and Diffie-Hellman key exchange, with a custom Public Key Infrastructure (PKI) for authentication. It ensures Confidentiality, Integrity, Authenticity, and Non-Repudiation (CIANR).
 
-This repository is the **official code skeleton** for your Assignment #2.  
-You will build a **console-based, PKI-enabled Secure Chat System** in **Python**, demonstrating how cryptographic primitives combine to achieve:
+2. Setup Instructions
 
-**Confidentiality, Integrity, Authenticity, and Non-Repudiation (CIANR)**.
+Clone your forked repository:
+
+git clone https://github.com/<your-username>/securechat-skeleton.git
+cd securechat-skeleton
 
 
-## 🧩 Overview
+Activate Python virtual environment:
 
-You are provided only with the **project skeleton and file hierarchy**.  
-Each file contains docstrings and `TODO` markers describing what to implement.
+.venv\Scripts\activate.bat   # Windows
+# or
+source .venv/bin/activate    # Linux/macOS
 
-Your task is to:
-- Implement the **application-layer protocol**.
-- Integrate cryptographic primitives correctly to satisfy the assignment spec.
-- Produce evidence of security properties via Wireshark, replay/tamper tests, and signed session receipts.
 
-## 🏗️ Folder Structure
-```
-securechat-skeleton/
-├─ app/
-│  ├─ client.py              # Client workflow (plain TCP, no TLS)
-│  ├─ server.py              # Server workflow (plain TCP, no TLS)
-│  ├─ crypto/
-│  │  ├─ aes.py              # AES-128(ECB)+PKCS#7 (use cryptography lib)
-│  │  ├─ dh.py               # Classic DH helpers + key derivation
-│  │  ├─ pki.py              # X.509 validation (CA signature, validity, CN)
-│  │  └─ sign.py             # RSA SHA-256 sign/verify (PKCS#1 v1.5)
-│  ├─ common/
-│  │  ├─ protocol.py         # Pydantic message models (hello/login/msg/receipt)
-│  │  └─ utils.py            # Helpers (base64, now_ms, sha256_hex)
-│  └─ storage/
-│     ├─ db.py               # MySQL user store (salted SHA-256 passwords)
-│     └─ transcript.py       # Append-only transcript + transcript hash
-├─ scripts/
-│  ├─ gen_ca.py              # Create Root CA (RSA + self-signed X.509)
-│  └─ gen_cert.py            # Issue client/server certs signed by Root CA
-├─ tests/manual/NOTES.md     # Manual testing + Wireshark evidence checklist
-├─ certs/.keep               # Local certs/keys (gitignored)
-├─ transcripts/.keep         # Session logs (gitignored)
-├─ .env.example              # Sample configuration (no secrets)
-├─ .gitignore                # Ignore secrets, binaries, logs, and certs
-├─ requirements.txt          # Minimal dependencies
-└─ .github/workflows/ci.yml  # Compile-only sanity check (no execution)
-```
+Install dependencies:
 
-## ⚙️ Setup Instructions
+pip install -r requirements.txt
 
-1. **Fork this repository** to your own GitHub account(using official nu email).  
-   All development and commits must be performed in your fork.
 
-2. **Set up environment**:
-   ```bash
-   python3 -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
-   cp .env.example .env
-   ```
+Generate certificates:
 
-3. **Initialize MySQL** (recommended via Docker):
-   ```bash
-   docker run -d --name securechat-db        -e MYSQL_ROOT_PASSWORD=rootpass        -e MYSQL_DATABASE=securechat        -e MYSQL_USER=scuser        -e MYSQL_PASSWORD=scpass        -p 3306:3306 mysql:8
-   ```
+python scripts/gen_ca.py
+python scripts/gen_cert.py
 
-4. **Create tables**:
-   ```bash
-   python -m app.storage.db --init
-   ```
 
-5. **Generate certificates** (after implementing the scripts):
-   ```bash
-   python scripts/gen_ca.py --name "FAST-NU Root CA"
-   python scripts/gen_cert.py --cn server.local --out certs/server
-   python scripts/gen_cert.py --cn client.local --out certs/client
-   ```
+Start the server:
 
-6. **Run components** (after implementation):
-   ```bash
-   python -m app.server
-   # in another terminal:
-   python -m app.client
-   ```
+python -m app.server
 
-## 🚫 Important Rules
 
-- **Do not use TLS/SSL or any secure-channel abstraction**  
-  (e.g., `ssl`, HTTPS, WSS, OpenSSL socket wrappers).  
-  All crypto operations must occur **explicitly** at the application layer.
+Start the client:
 
-- You are **not required** to implement AES, RSA, or DH math, Use any of the available libraries.
-- Do **not commit secrets** (certs, private keys, salts, `.env` values).
-- Your commits must reflect progressive development — at least **10 meaningful commits**.
+python -m app.client
 
-## 🧾 Deliverables
+3. Usage
 
-When submitting on Google Classroom (GCR):
+On first run, register a new user (username/password).
 
-1. A ZIP of your **GitHub fork** (repository).
-2. MySQL schema dump and a few sample records.
-3. Updated **README.md** explaining setup, usage, and test outputs.
-4. `RollNumber-FullName-Report-A02.docx`
-5. `RollNumber-FullName-TestReport-A02.docx`
+For returning users, login using the same credentials.
 
-## 🧪 Test Evidence Checklist
+Start chatting securely; all messages are encrypted and signed.
 
-✔ Wireshark capture (encrypted payloads only)  
-✔ Invalid/self-signed cert rejected (`BAD_CERT`)  
-✔ Tamper test → signature verification fails (`SIG_FAIL`)  
-✔ Replay test → rejected by seqno (`REPLAY`)  
-✔ Non-repudiation → exported transcript + signed SessionReceipt verified offline  
+4. Security Features
+4.1 Control Plane
+
+Mutual certificate exchange and validation (X.509, CA-signed).
+
+Registration/login credentials are encrypted via AES using a temporary DH-derived key.
+
+Passwords stored in MySQL as salted SHA-256 hashes.
+
+4.2 Key Agreement
+
+Diffie-Hellman key exchange to derive session AES key.
+
+AES-128 session key ensures confidentiality of all messages.
+
+4.3 Data Plane
+
+Messages encrypted with AES-128 (PKCS#7 padding).
+
+SHA-256 hash over seqno || timestamp || ciphertext.
+
+RSA signature over the digest to ensure integrity and authenticity.
+
+Sequence numbers + timestamps prevent replay attacks.
+
+4.4 Non-Repudiation
+
+Transcript logged per session: seqno | timestamp | ciphertext | signature | peer-cert-fingerprint.
+
+SessionReceipt generated:
+
+{
+  "type": "receipt",
+  "peer": "client|server",
+  "first_seq": ...,
+  "last_seq": ...,
+  "transcript_sha256": "...",
+  "sig": "base64(RSA SIGN(transcript_sha256))"
+}
+
+
+Offline verification confirms authenticity and integrity; any edit breaks verification.
+
+5. Testing & Evidence
+5.1 Wireshark
+
+Captured traffic shows only encrypted payloads.
+
+Display filter used: tcp.port == 9000
+
+No plaintext usernames, passwords, or messages visible.
+
+5.2 Invalid Certificate Test
+
+Tested forged/self-signed/expired certificates.
+
+Server logs: BAD CERT for all invalid cases.
+
+5.3 Tampering Test
+
+Sent a message and flipped a single bit in the ciphertext.
+
+Server rejects the message due to signature verification failure (SIG FAIL).
+
+5.4 Replay Test
+
+Resent old seqno.
+
+Server rejected message (REPLAY).
+
+5.5 Non-Repudiation Verification
+
+Transcript exported at end of session.
+
+SHA-256 digest of each message recomputed.
+
+RSA signature of each digest verified.
+
+SessionReceipt verified by checking transcript hash signature.
+
+Any modification in transcript invalidates receipt signature.
+
+6. MySQL Schema
+CREATE TABLE users (
+    email VARCHAR(255),
+    username VARCHAR(255) UNIQUE,
+    salt VARBINARY(16),
+    pwd_hash CHAR(64)
+);
+
+-- Sample record:
+INSERT INTO users (email, username, salt, pwd_hash) VALUES
+('test@example.com', 'testuser', UNHEX('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'), '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08');
+
+7. Repository & Commits
+
+All work done on forked repository.
+
+10 meaningful commits demonstrating progressive development:
+
+Initial project setup and environment.
+
+CA generation and certificate issuance.
+
+Client/server certificate validation.
+
+Registration/login with encrypted credentials.
+
+Diffie-Hellman session key derivation.
+
+AES-128 encrypted messaging.
+
+SHA-256 + RSA signature integration.
+
+Transcript logging.
+
+SessionReceipt & offline verification.
+
+README update and test documentation.
