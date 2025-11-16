@@ -52,3 +52,4 @@ def init_db():
     cursor.close()
     conn.close()
     print("DB initialized")
+"# Database setup for MySQL users" 
