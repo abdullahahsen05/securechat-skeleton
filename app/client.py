@@ -161,3 +161,4 @@ if __name__ == "__main__":
 "print('[*] Certificate verification step loaded')" 
 "print('[*] Diffie-Hellman key exchange implemented')" 
 "# AES encryption/decryption functions added" 
+"print('[*] Chat loop initialized')" 
