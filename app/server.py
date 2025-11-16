@@ -117,3 +117,4 @@ def main():
 if __name__ == "__main__":
     main()
 "# Server skeleton" 
+"print('[*] Login/register functions loaded')" 
