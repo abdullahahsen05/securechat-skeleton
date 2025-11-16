@@ -119,3 +119,4 @@ if __name__ == "__main__":
 "# Server skeleton" 
 "print('[*] Login/register functions loaded')" 
 "# Transcript logging and non-repudiation implemented" 
+"print('[*] Session receipt generated')" 
